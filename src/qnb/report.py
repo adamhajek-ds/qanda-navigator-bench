@@ -54,21 +54,21 @@ def print_summary(reports: list[QuestionReport], console: Console | None = None)
     table = Table(title="QnA Navigator Bench", expand=False, padding=(0, 1))
     table.add_column("ID", style="cyan")
     table.add_column("OK?", justify="center")
-    table.add_column("In Tok", justify="right")
-    table.add_column("Out Tok", justify="right")
+    table.add_column("Read", justify="right")
+    table.add_column("Total In", justify="right")
+    table.add_column("Out", justify="right")
     table.add_column("Turns", justify="right")
-    table.add_column("Tok/T", justify="right")
-    table.add_column("Cache%", justify="right")
     table.add_column("Models")
     table.add_column("Cost", justify="right")
     table.add_column("Time", justify="right")
 
-    totals = dict(in_tok=0, out_tok=0, turns=0, cost=0.0, duration=0, correct=0)
+    totals = dict(read=0, total_in=0, out=0, turns=0, cost=0.0, duration=0, correct=0)
 
     for report in reports:
         r = report.result
-        totals["in_tok"] += r.total_input_tokens
-        totals["out_tok"] += r.total_output_tokens
+        totals["read"] += r.new_content_tokens
+        totals["total_in"] += r.total_input_tokens
+        totals["out"] += r.total_output_tokens
         totals["turns"] += r.num_turns
         totals["cost"] += r.total_cost_usd
         totals["duration"] += r.duration_ms
@@ -81,16 +81,13 @@ def print_summary(reports: list[QuestionReport], console: Console | None = None)
         else:
             verdict_str = "—"
 
-        tok_per_turn = r.total_input_tokens // r.num_turns if r.num_turns else 0
-
         table.add_row(
             r.question_id,
             verdict_str,
+            _fmt_tokens(r.new_content_tokens),
             _fmt_tokens(r.total_input_tokens),
             _fmt_tokens(r.total_output_tokens),
             str(r.num_turns),
-            _fmt_tokens(tok_per_turn),
-            _cache_hit_rate(r.model_usage),
             _model_split(r.model_usage),
             f"${r.total_cost_usd:.2f}",
             f"{r.duration_ms / 1000:.0f}s",
@@ -98,16 +95,14 @@ def print_summary(reports: list[QuestionReport], console: Console | None = None)
 
     n = len(reports)
     avg_turns = totals["turns"] / n if n else 0
-    avg_tok_per_turn = totals["in_tok"] // totals["turns"] if totals["turns"] else 0
     table.add_section()
     table.add_row(
         "TOTAL",
         f"{totals['correct']}/{n}" if any(r.verdict for r in reports) else "—",
-        _fmt_tokens(totals["in_tok"]),
-        _fmt_tokens(totals["out_tok"]),
+        _fmt_tokens(totals["read"]),
+        _fmt_tokens(totals["total_in"]),
+        _fmt_tokens(totals["out"]),
         f"~{avg_turns:.0f}",
-        _fmt_tokens(avg_tok_per_turn),
-        "",
         "",
         f"${totals['cost']:.2f}",
         f"{totals['duration'] / 1000:.0f}s",
@@ -149,8 +144,8 @@ def export_json(reports: list[QuestionReport], path: Path) -> None:
             "result": _result_to_dict(r.result),
             "verdict": asdict(r.verdict) if r.verdict else None,
             "derived": {
-                "tokens_per_turn": r.result.total_input_tokens // r.result.num_turns if r.result.num_turns else 0,
-                "cache_hit_rate": sum(m.cache_read_tokens for m in r.result.model_usage) / max(r.result.total_input_tokens, 1),
+                "new_content_tokens": r.result.new_content_tokens,
+                "resent_tokens": r.result.resent_tokens,
                 "model_split": {
                     m.model: m.total_input_tokens / max(r.result.total_input_tokens, 1)
                     for m in r.result.model_usage
@@ -166,11 +161,11 @@ def export_json(reports: list[QuestionReport], path: Path) -> None:
         "summary": {
             "total_questions": n,
             "correct": sum(1 for r in reports if r.verdict and r.verdict.correct),
+            "new_content_tokens": sum(r.result.new_content_tokens for r in reports),
             "total_input_tokens": sum(r.result.total_input_tokens for r in reports),
             "total_output_tokens": sum(r.result.total_output_tokens for r in reports),
             "total_cost_usd": sum(r.result.total_cost_usd for r in reports),
             "avg_turns": total_turns / n if n else 0,
-            "avg_tokens_per_turn": sum(r.result.total_input_tokens for r in reports) // max(total_turns, 1),
             "total_duration_ms": sum(r.result.duration_ms for r in reports),
         },
     }

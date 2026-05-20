@@ -40,6 +40,16 @@ class AgentResult:
     model_usage: list[ModelUsage]
     raw_output: dict
 
+    @property
+    def new_content_tokens(self) -> int:
+        """Tokens the agent actually read (cache_creation + fresh input), excluding re-sent history."""
+        return sum(m.input_tokens + m.cache_creation_tokens for m in self.model_usage)
+
+    @property
+    def resent_tokens(self) -> int:
+        """Tokens re-sent from previous turns (cache_read)."""
+        return sum(m.cache_read_tokens for m in self.model_usage)
+
 
 class Agent(abc.ABC):
     name: str
