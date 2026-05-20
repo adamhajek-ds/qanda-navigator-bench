@@ -133,7 +133,7 @@ def main(argv: list[str] | None = None) -> None:
 
     # Capture the same output as plain text for the .out file
     buf = io.StringIO()
-    file_console = Console(file=buf, width=120, force_terminal=True)
+    file_console = Console(file=buf, width=120, no_color=True)
     print_summary(reports, file_console)
 
     qnb_repo = Path(__file__).resolve().parent.parent.parent
