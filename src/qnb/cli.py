@@ -22,7 +22,7 @@ AGENTS: dict[str, type[Agent]] = {
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        prog="qnb",
+        prog="qanda",
         description="Benchmark AI coding agents on repo-specific Q&A",
     )
     sub = parser.add_subparsers(dest="command")

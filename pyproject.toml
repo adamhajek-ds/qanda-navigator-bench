@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-qnb = "qnb.cli:main"
+qanda = "qnb.cli:main"
 
 [build-system]
 requires = ["hatchling"]
