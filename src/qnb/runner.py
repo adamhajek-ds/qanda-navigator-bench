@@ -23,19 +23,32 @@ def load_questions(qanda_path: Path) -> list[Question]:
     ]
 
 
+def filter_questions(
+    questions: list[Question],
+    question_ids: list[str] | None = None,
+    tags: set[str] | None = None,
+) -> list[Question]:
+    filtered = questions
+    if question_ids:
+        filtered = [q for q in filtered if q.id in question_ids]
+    if tags:
+        filtered = [q for q in filtered if tags & set(q.tags)]
+    return filtered
+
+
 def run_benchmark(
     agent: Agent,
     questions: list[Question],
     working_dir: Path,
     question_ids: list[str] | None = None,
-) -> list[AgentResult]:
-    if question_ids:
-        questions = [q for q in questions if q.id in question_ids]
+    tags: set[str] | None = None,
+) -> tuple[list[AgentResult], list[Question]]:
+    filtered = filter_questions(questions, question_ids, tags)
 
     results: list[AgentResult] = []
-    for question in questions:
+    for question in filtered:
         result = agent.run(question.question, working_dir)
         result.question_id = question.id
         results.append(result)
 
-    return results
+    return results, filtered

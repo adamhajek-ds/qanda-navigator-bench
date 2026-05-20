@@ -52,6 +52,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Comma-separated question IDs to run (default: all)",
     )
     run_parser.add_argument(
+        "--tags",
+        help="Comma-separated tags to filter by (default: all)",
+    )
+    run_parser.add_argument(
         "--no-judge",
         action="store_true",
         help="Skip correctness judging",
@@ -84,6 +88,7 @@ def main(argv: list[str] | None = None) -> None:
 
     questions = load_questions(args.qanda)
     question_ids = args.questions.split(",") if args.questions else None
+    filter_tags = set(args.tags.split(",")) if args.tags else None
     working_dir = args.qanda.resolve().parent
 
     agent_cls = AGENTS[args.agent]
@@ -94,13 +99,18 @@ def main(argv: list[str] | None = None) -> None:
         agent_kwargs["max_turns"] = args.max_turns
     agent = agent_cls(**agent_kwargs)
 
-    console.print(f"Running [bold]{len(questions)}[/] questions with [cyan]{agent.name}[/]...")
+    from .runner import filter_questions
+    filtered_questions = filter_questions(questions, question_ids, filter_tags)
+
+    console.print(f"Running [bold]{len(filtered_questions)}[/] questions with [cyan]{agent.name}[/]...")
+    if filter_tags:
+        console.print(f"  Filtered by tags: {', '.join(sorted(filter_tags))}")
     console.print()
 
-    results = run_benchmark(agent, questions, working_dir, question_ids)
+    results, filtered_questions = run_benchmark(agent, questions, working_dir, question_ids, filter_tags)
 
     reports: list[QuestionReport] = []
-    for result, question in zip(results, questions if not question_ids else [q for q in questions if q.id in question_ids]):
+    for result, question in zip(results, filtered_questions):
         verdict = None
         if not args.no_judge and question.golden_answer:
             console.print(f"  Judging {result.question_id}...")
@@ -110,7 +120,12 @@ def main(argv: list[str] | None = None) -> None:
                 acceptance_instructions=question.acceptance_instructions,
                 model=args.judge_model,
             )
-        reports.append(QuestionReport(question_id=result.question_id, result=result, verdict=verdict))
+        reports.append(QuestionReport(
+            question_id=result.question_id,
+            result=result,
+            verdict=verdict,
+            tags=question.tags,
+        ))
 
     console.print()
     print_summary(reports, console)

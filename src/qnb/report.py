@@ -26,6 +26,11 @@ class QuestionReport:
     question_id: str
     result: AgentResult
     verdict: JudgeVerdict | None
+    tags: list[str] = None
+
+    def __post_init__(self):
+        if self.tags is None:
+            self.tags = []
 
 
 def _model_split(model_usage: list[ModelUsage]) -> str:
@@ -128,6 +133,53 @@ def print_summary(reports: list[QuestionReport], console: Console | None = None)
                     width=100,
                 )
             )
+
+    _print_tag_summary(reports, console)
+
+
+def _print_tag_summary(reports: list[QuestionReport], console: Console) -> None:
+    tag_groups: dict[str, list[QuestionReport]] = {}
+    for report in reports:
+        for tag in report.tags:
+            tag_groups.setdefault(tag, []).append(report)
+
+    if not tag_groups:
+        return
+
+    console.print()
+    table = Table(title="By Tag", expand=False, padding=(0, 1))
+    table.add_column("Tag", style="magenta")
+    table.add_column("Qs", justify="right")
+    table.add_column("OK", justify="center")
+    table.add_column("Avg Read", justify="right")
+    table.add_column("Avg Total", justify="right")
+    table.add_column("Avg Turns", justify="right")
+    table.add_column("Avg Cost", justify="right")
+    table.add_column("Avg Time", justify="right")
+
+    for tag in sorted(tag_groups):
+        group = tag_groups[tag]
+        n = len(group)
+        correct = sum(1 for r in group if r.verdict and r.verdict.correct)
+        has_verdict = any(r.verdict for r in group)
+        avg_read = sum(r.result.new_content_tokens for r in group) // n
+        avg_total = sum(r.result.total_input_tokens for r in group) // n
+        avg_turns = sum(r.result.num_turns for r in group) / n
+        avg_cost = sum(r.result.total_cost_usd for r in group) / n
+        avg_time = sum(r.result.duration_ms for r in group) / n
+
+        table.add_row(
+            tag,
+            str(n),
+            f"{correct}/{n}" if has_verdict else "—",
+            _fmt_tokens(avg_read),
+            _fmt_tokens(avg_total),
+            f"{avg_turns:.1f}",
+            f"${avg_cost:.2f}",
+            f"{avg_time / 1000:.0f}s",
+        )
+
+    console.print(table)
 
 
 def _result_to_dict(r: AgentResult) -> dict:
