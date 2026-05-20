@@ -78,9 +78,8 @@ def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
     console = Console()
 
-    if args.command != "run":
-        console.print("[red]Usage: qnb run [OPTIONS][/]")
-        sys.exit(1)
+    if args.command is None:
+        parse_args(["--help"])
 
     if not args.qanda.exists():
         console.print(f"[red]File not found: {args.qanda}[/]")
