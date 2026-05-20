@@ -130,7 +130,8 @@ def main(argv: list[str] | None = None) -> None:
     console.print()
     print_summary(reports, console)
 
-    results_dir = working_dir / "qanda-results"
+    qnb_repo = Path(__file__).resolve().parent.parent.parent
+    results_dir = qnb_repo / "results"
     results_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     auto_output = results_dir / f"{timestamp}.json"
