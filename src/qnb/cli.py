@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from datetime import datetime
 from pathlib import Path
 
 from rich.console import Console
@@ -129,6 +130,13 @@ def main(argv: list[str] | None = None) -> None:
     console.print()
     print_summary(reports, console)
 
+    results_dir = working_dir / "qanda-results"
+    results_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    auto_output = results_dir / f"{timestamp}.json"
+    export_json(reports, auto_output)
+    console.print(f"\nResults saved to [cyan]{auto_output}[/]")
+
     if args.output:
         export_json(reports, args.output)
-        console.print(f"\nFull results exported to [cyan]{args.output}[/]")
+        console.print(f"Also exported to [cyan]{args.output}[/]")
