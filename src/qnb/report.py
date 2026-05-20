@@ -37,7 +37,7 @@ def print_summary(reports: list[QuestionReport], console: Console | None = None)
 
     for report in reports:
         r = report.result
-        total_tokens += r.input_tokens
+        total_tokens += r.total_input_tokens
         total_turns += r.num_turns
         total_cost += r.total_cost_usd
         total_duration += r.duration_ms
@@ -53,7 +53,7 @@ def print_summary(reports: list[QuestionReport], console: Console | None = None)
         table.add_row(
             r.question_id,
             correct_str,
-            f"{r.input_tokens:,}",
+            f"{r.total_input_tokens:,}",
             str(r.num_turns),
             f"{r.total_cost_usd:.4f}",
             f"{r.duration_ms / 1000:.1f}s",
@@ -75,12 +75,18 @@ def print_summary(reports: list[QuestionReport], console: Console | None = None)
     console.print(table)
 
 
+def _result_to_dict(r: AgentResult) -> dict:
+    d = asdict(r)
+    del d["raw_output"]
+    return d
+
+
 def export_json(reports: list[QuestionReport], path: Path) -> None:
     data = {
         "results": [
             {
                 "question_id": r.question_id,
-                "result": asdict(r.result),
+                "result": _result_to_dict(r.result),
                 "verdict": asdict(r.verdict) if r.verdict else None,
             }
             for r in reports
@@ -88,7 +94,7 @@ def export_json(reports: list[QuestionReport], path: Path) -> None:
         "summary": {
             "total_questions": len(reports),
             "correct": sum(1 for r in reports if r.verdict and r.verdict.correct),
-            "total_input_tokens": sum(r.result.input_tokens for r in reports),
+            "total_input_tokens": sum(r.result.total_input_tokens for r in reports),
             "total_cost_usd": sum(r.result.total_cost_usd for r in reports),
             "avg_turns": sum(r.result.num_turns for r in reports) / len(reports) if reports else 0,
             "total_duration_ms": sum(r.result.duration_ms for r in reports),

@@ -14,16 +14,29 @@ class Question:
 
 
 @dataclass
+class ModelUsage:
+    model: str
+    input_tokens: int
+    output_tokens: int
+    cache_read_tokens: int
+    cache_creation_tokens: int
+    cost_usd: float
+
+    @property
+    def total_input_tokens(self) -> int:
+        return self.input_tokens + self.cache_read_tokens + self.cache_creation_tokens
+
+
+@dataclass
 class AgentResult:
     question_id: str
     answer: str
-    input_tokens: int
-    output_tokens: int
-    cache_creation_tokens: int
-    cache_read_tokens: int
+    total_input_tokens: int
+    total_output_tokens: int
     total_cost_usd: float
     num_turns: int
     duration_ms: int
+    model_usage: list[ModelUsage]
     raw_output: dict
 
 
