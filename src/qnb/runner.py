@@ -16,6 +16,7 @@ def load_questions(qanda_path: Path) -> list[Question]:
             id=q["id"],
             question=q["question"],
             golden_answer=q.get("golden_answer", ""),
+            acceptance_instructions=q.get("acceptance_instructions", ""),
             tags=q.get("tags", []),
         )
         for q in data["questions"]

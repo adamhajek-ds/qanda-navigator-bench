@@ -18,12 +18,16 @@ You are a judge evaluating whether an AI agent's answer is correct.
 ## Golden answer (expected)
 {golden_answer}
 
+## Acceptance instructions
+{acceptance_instructions}
+
 ## Agent's answer
 {agent_answer}
 
-Evaluate whether the agent's answer captures the key facts from the golden answer.
-Minor wording differences are fine. The agent may include additional correct details.
-What matters is whether the core information is present and accurate.
+Follow the acceptance instructions above to evaluate the agent's answer against the golden answer.
+If no acceptance instructions are provided, use this default: the agent's answer must capture
+the key facts from the golden answer. Minor wording differences are fine, but core information
+must be present and accurate.
 
 Respond with exactly this JSON (no other text):
 {{"correct": true/false, "confidence": 0.0-1.0, "explanation": "brief reason"}}
@@ -33,11 +37,13 @@ Respond with exactly this JSON (no other text):
 def judge_answer(
     golden_answer: str,
     agent_answer: str,
+    acceptance_instructions: str = "",
     model: str = "sonnet",
 ) -> JudgeVerdict:
     prompt = JUDGE_PROMPT.format(
         golden_answer=golden_answer,
         agent_answer=agent_answer,
+        acceptance_instructions=acceptance_instructions or "(none — use default evaluation criteria)",
     )
 
     result = subprocess.run(

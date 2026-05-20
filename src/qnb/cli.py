@@ -104,7 +104,12 @@ def main(argv: list[str] | None = None) -> None:
         verdict = None
         if not args.no_judge and question.golden_answer:
             console.print(f"  Judging {result.question_id}...")
-            verdict = judge_answer(question.golden_answer, result.answer, model=args.judge_model)
+            verdict = judge_answer(
+                question.golden_answer,
+                result.answer,
+                acceptance_instructions=question.acceptance_instructions,
+                model=args.judge_model,
+            )
         reports.append(QuestionReport(question_id=result.question_id, result=result, verdict=verdict))
 
     console.print()

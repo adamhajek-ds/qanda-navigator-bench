@@ -10,6 +10,7 @@ class Question:
     id: str
     question: str
     golden_answer: str
+    acceptance_instructions: str = ""
     tags: list[str] = field(default_factory=list)
 
 
