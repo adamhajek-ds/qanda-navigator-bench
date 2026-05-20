@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -130,13 +131,18 @@ def main(argv: list[str] | None = None) -> None:
     console.print()
     print_summary(reports, console)
 
+    # Capture the same output as plain text for the .out file
+    buf = io.StringIO()
+    file_console = Console(file=buf, width=120, force_terminal=True)
+    print_summary(reports, file_console)
+
     qnb_repo = Path(__file__).resolve().parent.parent.parent
     results_dir = qnb_repo / "results"
     results_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    auto_output = results_dir / f"{timestamp}.json"
-    export_json(reports, auto_output)
-    console.print(f"\nResults saved to [cyan]{auto_output}[/]")
+    export_json(reports, results_dir / f"{timestamp}.json")
+    (results_dir / f"{timestamp}.out").write_text(buf.getvalue())
+    console.print(f"\nResults saved to [cyan]{results_dir / timestamp}[/]{{.json,.out}}")
 
     if args.output:
         export_json(reports, args.output)
